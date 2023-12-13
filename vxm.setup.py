@@ -1,3 +1,14 @@
+"""
+Author            : Nohavye
+Author's Email    : noha.poncelet@gmail.com
+Repository        : https://github.com/vixen-shell/vixen-environment.git
+Description       : vxm setup file.
+License           : GPL3
+
+Additional Information:
+- This file can be considered a template.
+"""
+
 import os
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))

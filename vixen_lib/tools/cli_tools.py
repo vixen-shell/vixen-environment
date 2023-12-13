@@ -1,3 +1,11 @@
+"""
+Author            : Nohavye
+Author's Email    : noha.poncelet@gmail.com
+Repository        : https://github.com/vixen-shell/vixen-environment.git
+Description       : vixen cli tools.
+License           : GPL3
+"""
+
 class TypedMessage:
     def __init__(self, message: str) -> None:
         self.__message = message

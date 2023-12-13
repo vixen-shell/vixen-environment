@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+"""
+Author            : Nohavye
+Author's Email    : noha.poncelet@gmail.com
+Repository        : https://github.com/vixen-shell/vixen-environment.git
+Description       : vxm executable.
+License           : GPL3
+"""
+
 import argparse, importlib.util
 from vixen_lib import packages
 
