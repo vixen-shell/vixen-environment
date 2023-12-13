@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse, importlib.util
-from vixen_environment_lib import package_manager
+from vixen_lib import packages
 
 def get_setup_module(path: str):
     spec = importlib.util.spec_from_file_location('setup', f'{path}/vxm.setup.py')
@@ -20,6 +20,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.install: package_manager.SetupProcessor(get_setup_module(args.install).setup).process()
-    if args.update: package_manager.SetupProcessor(get_setup_module(args.update).update).process()
-    if args.remove: package_manager.SetupProcessor(get_setup_module(args.remove).remove).process()
+    if args.install: packages.Setup(get_setup_module(args.install).setup).process()
+    if args.update: packages.Setup(get_setup_module(args.update).update).process()
+    if args.remove: packages.Setup(get_setup_module(args.remove).remove).process()

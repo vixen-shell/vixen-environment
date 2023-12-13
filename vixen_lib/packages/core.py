@@ -59,7 +59,7 @@ class Task:
         self.__cancellable = False
 
     def __handle_purpose(self, cancel: bool) -> str:
-        prefix = '' if not cancel else 'Cancel '
+        prefix = '' if not cancel else cli.TypedMessage('Cancel ').warning
         return (prefix + self.__purpose)
 
     def __process(self, cancel: bool = False):
@@ -84,14 +84,16 @@ class Task:
     def cancellable(self) -> bool:
         return self.__cancellable
     
-class SetupProcessor:
+class Setup:
     def __init__(self, setup_data: dict) -> None:
         self.__purpose: str = setup_data['purpose']
-        self.__task_list_data: List[dict] = setup_data['tasks']
-        self.__task_list = self.__task_list_builder()
+        self.__task_list = []
+
+        for task_data in setup_data['tasks']:
+            self.__task_list.append(self.__task_builder(task_data))
 
     def __requirements_builder(self, requirements_data: Optional[List[dict]|None]) -> Requirements:
-        if not requirements_data: return None
+        if not requirements_data: return Requirements()
         
         requirement_list: List[Requirement] = []
 
@@ -112,14 +114,6 @@ class SetupProcessor:
             requirements=self.__requirements_builder(task_data.get('requirements'))
         )
     
-    def __task_list_builder(self) -> List[Task]:
-        task_list = []
-
-        for task_data in self.__task_list_data:
-            task_list.append(self.__task_builder(task_data))
-
-        return task_list
-    
     def process(self) -> None:
         print(f'\n{cli.TypedMessage(self.__purpose).title}\n')
 
@@ -128,7 +122,7 @@ class SetupProcessor:
                 self.__cancel_process()
                 exit(1)
 
-        print(cli.TypedMessage('\nExecution was successful!').succes)
+        print(cli.TypedMessage('\nExecution was successful!').success)
 
     def __cancel_process(self) -> None:
         print()

@@ -1,28 +1,89 @@
 import os
 
-data = {
-    'feature': 'Vixen Environment',
-    'current_path': os.path.dirname(os.path.abspath(__file__)),
-    'vixen_environment_install_path': '/opt/vixen-env',
-    'executable_install_path': '/usr/bin',
-    'executable_name': 'vixen-manager',
-    'executable_patch': '#!/opt/vixen-env/bin/python'
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
+
+feature = {
+    'name': 'Vixen Environment',
+    'install_path': '/opt/vixen-env'
 }
+feature['install_command'] = f"sudo python -m venv {feature['install_path']}"
+feature['remove_command'] = f"sudo rm -r {feature['install_path']}"
+
+library = {
+    'name': 'vixen_lib',
+    'source': '/opt/vixen-env/bin/activate'
+}
+library['install_command'] = f"source {library['source']} && sudo pip install --upgrade pip && sudo pip install {CURRENT_PATH}"
+
+executable = {
+    'name': 'vxm',
+    'install_path': '/usr/bin',
+    'patch': '#!/opt/vixen-env/bin/python',
+}
+executable['install_command'] = f"sudo cp -f {CURRENT_PATH}/{executable['name']} {executable['install_path']}"
+executable['remove_command'] = f"sudo rm {executable['install_path']}/{executable['name']}"
+executable['patch_command'] = f'sudo sed -i "1s|.*|{executable["patch"]}|" {executable["install_path"]}/{executable["name"]}'
 
 setup = {
-    'purpose': f"Install {data['feature']}",
+    'purpose': f"Install {feature['name']}",
     'tasks': [
         {
-            'purpose': f"Create the Vixen environment to '{data['vixen_environment_install_path']}'",
-            'process_command': f"sudo python -m venv {data['vixen_environment_install_path']}",
-            'cancel_command': f"sudo rm -r {data['vixen_environment_install_path']}",
+            'purpose': 'Create the Vixen environment',
+            'process_command': feature['install_command'],
+            'cancel_command': feature['remove_command'],
             'requirements': [
                 {
                     'purpose': 'Check an existing installation',
-                    'callback': lambda: not os.path.isdir(data["vixen_environment_install_path"]),
-                    'failure_details': f"{data['feature']} is already installed"
+                    'callback': lambda: not os.path.isdir(feature['install_path']),
+                    'failure_details': f"{feature['name']} is already installed"
                 }
             ]
+        },
+        {
+            'purpose': f"Install {library['name']} library",
+            'process_command': library['install_command']
+        },
+        {
+            'purpose': 'Remove build folders',
+            'process_command': f"sudo rm -r {CURRENT_PATH}/build && sudo rm -r {CURRENT_PATH}/{library['name']}.egg-info",
+        },
+        {
+            'purpose': 'Install Vixen Manager executable',
+            'process_command': executable['install_command'],
+            'cancel_command': executable['remove_command']
+        },
+        {
+            'purpose': 'Patch Vixen Manager executable',
+            'process_command': executable['patch_command']
+        }
+    ]
+}
+
+update = {
+    'purpose': f"Update {feature['name']}",
+    'tasks': [
+        {
+            'purpose': f"Update {library['name']} library",
+            'process_command': f"{library['install_command']} --force-reinstall",
+            'requirements': [
+                {
+                    'purpose': 'Check an existing installation',
+                    'callback': lambda: os.path.isdir(feature['install_path']),
+                    'failure_details': f"{feature['name']} is not installed"
+                }
+            ]
+        },
+        {
+            'purpose': 'Remove build folders',
+            'process_command': f"sudo rm -r {CURRENT_PATH}/build && sudo rm -r {CURRENT_PATH}/{library['name']}.egg-info",
+        },
+        {
+            'purpose': 'Update Vixen Manager executable',
+            'process_command': executable['install_command'],
+        },
+        {
+            'purpose': 'Patch Vixen Manager executable',
+            'process_command': executable['patch_command']
         }
     ]
 }
