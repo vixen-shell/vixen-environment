@@ -9,6 +9,7 @@ License           : GPL3
 from typing import Optional, Callable, List
 from subprocess import run, PIPE
 from ..tools import cli
+from ..snapshots import SnapShot
 
 SUCCES_MESSAGE = cli.TypedMessage('succes').success
 FAILURE_MESSAGE = cli.TypedMessage('failure').failure

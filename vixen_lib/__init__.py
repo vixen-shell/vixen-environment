@@ -7,4 +7,5 @@ License           : GPL3
 """
 
 from . import packages
+from . import snapshots
 from . import tools
