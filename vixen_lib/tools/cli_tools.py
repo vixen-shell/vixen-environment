@@ -2,7 +2,7 @@
 Author            : Nohavye
 Author's Email    : noha.poncelet@gmail.com
 Repository        : https://github.com/vixen-shell/vixen-environment.git
-Description       : vixen cli tools.
+Description       : vixen command line interface tools.
 License           : GPL3
 """
 

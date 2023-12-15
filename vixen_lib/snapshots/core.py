@@ -2,7 +2,7 @@
 Author            : Nohavye
 Author's Email    : noha.poncelet@gmail.com
 Repository        : https://github.com/vixen-shell/vixen-environment.git
-Description       : vixen snapshots management.
+Description       : vixen snapshots feature.
 License           : GPL3
 """
 
@@ -11,52 +11,49 @@ from datetime import datetime
 from ..tools import fs
 
 class Snap:
-    def __init__(self, origin_path: str, snapshot_path: str) -> None:
-        self.__origin = fs.PathEntry(origin_path)
-        self.__snap = fs.PathEntry(
-            f'{snapshot_path}{self.__origin.parent_path}/{self.__origin.entry}'
+    def __init__(self, original_path: str, snapshot_directory: str) -> None:
+        self.__original = fs.File(original_path)
+        self.__snap = fs.File(
+            name=self.__original.name,
+            parent_directory=f'{snapshot_directory}{self.__original.parent_directory}',
+            file_type=self.__original.file_type
         )
 
     def create(self) -> bool:
-        if not fs.exists(self.__snap.parent_path):
-            if not fs.create_folder(
-                path=self.__snap.parent_path,
-                sudo=True
-            ): return False
+        if self.__snap.exists: return False
 
-        return fs.copy(
-            path=self.__origin.path,
-            to=self.__snap.parent_path,
+        if not self.__snap.parent_directory_exists:
+            if not self.__snap.create_parent_directory(sudo=True): return False
+
+        return self.__original.copy(
+            to=self.__snap.parent_directory,
             sudo=True
         )
     
     def restore(self) -> bool:
-        if not fs.remove(
-            path=self.__origin.path,
-            sudo=True
-        ): return False
+        if not self.__snap.exists: return False
+        if not self.__original.remove(sudo=True): return False
 
-        return fs.copy(
-            path=self.__snap.path,
-            to=self.__origin.parent_path,
+        return self.__snap.copy(
+            to=self.__original.parent_directory,
             sudo=True
         )
     
 class SnapShot:
-    def __init__(self, parent_path: str, entries: List[str]) -> None:
-        self.__path_entry = fs.PathEntry(f'{parent_path}/{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+    def __init__(self, parent_directory: str, entries: List[str]) -> None:
         self.__snaps: List[Snap] = []
+        self.__snapshot_directory = fs.File(
+            name=datetime.now().strftime("%Y%m%d_%H%M%S"),
+            parent_directory=parent_directory,
+            file_type=fs.FileType.DIRECTORY
+        )        
+        self.__snapshot_directory.create(sudo=True)
 
-        for entry in entries:
-            self.__snaps.append(Snap(entry, self.__path_entry.path))
+        if self.__snapshot_directory.exists:
+            for entry in entries:
+                self.__snaps.append(Snap(entry, self.__snapshot_directory.path))
 
     def create(self) -> bool:
-        if not fs.exists(self.__path_entry.parent_path):
-            if not fs.create_folder(
-                path=self.__path_entry.parent_path,
-                sudo=True
-            ): return False
-
         for snap in self.__snaps:
             if not snap.create(): return False
 
@@ -69,4 +66,4 @@ class SnapShot:
         return True
     
     def remove(self) -> bool:
-        return fs.remove(self.__path_entry.path, sudo=True)
+        return self.__snapshot_directory.remove(sudo=True)
