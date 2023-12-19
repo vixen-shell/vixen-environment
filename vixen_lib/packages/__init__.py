@@ -7,3 +7,4 @@ License           : GPL3
 """
 
 from .core import Setup
+from . import status

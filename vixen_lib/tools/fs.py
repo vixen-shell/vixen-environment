@@ -31,32 +31,29 @@ def get_file_type(path: str) -> FileType:
 def create(
     path: str,
     file_type: FileType = FileType.FILE,
-    outputs: cli.Outputs = {'out': False, 'err': True},
-    sudo: bool = False
+    outputs: cli.Outputs = {'out': False, 'err': True}
 ) -> bool:
     
     if file_type == FileType.FILE:
-        return cli.run(f'touch {path}', outputs, sudo)
+        return cli.run(f'touch {path}', outputs)
 
     if file_type == FileType.DIRECTORY:
-        return cli.run(f'mkdir -p {path}', outputs, sudo)
+        return cli.run(f'mkdir -p {path}', outputs)
 
 def copy(
     path: str,
     to: str,
-    outputs: cli.Outputs = {'out': False, 'err': True},
-    sudo: bool = False
+    outputs: cli.Outputs = {'out': False, 'err': True}
 ) -> bool:
     option = '-r ' if is_directory(path) else ''
-    return cli.run(f'cp {option}{path} {to}', outputs, sudo)
+    return cli.run(f'cp {option}{path} {to}', outputs)
 
 def remove(
     path: str,
-    outputs: cli.Outputs = {'out': False, 'err': True},
-    sudo: bool = False
+    outputs: cli.Outputs = {'out': False, 'err': True}
 ) -> bool:
     option = '-r ' if is_directory(path) else ''
-    return cli.run(f'rm {option}{path}', outputs, sudo)
+    return cli.run(f'rm {option}{path}', outputs)
 
 class File:
     def __init__(
@@ -64,14 +61,20 @@ class File:
         path: Optional[str|None] = None,
         name: Optional[str|None] = None,
         parent_directory: Optional[str|None] = None,
-        file_type: Optional[FileType|None] = None
+        file_type: FileType = FileType.FILE
     ) -> None:
         
         if path:
             self.path = path
-            self.name = os.path.basename(path)
-            self.parent_directory = os.path.dirname(path)
-            self.file_type = get_file_type(path)
+            if exists(self.path):
+                self.name = os.path.basename(path)
+                self.parent_directory = os.path.dirname(path)
+                self.file_type = get_file_type(path)
+            else:
+                _parent_directory, _name = os.path.split(path)
+                self.name = _name
+                self.parent_directory = _parent_directory
+                self.file_type = file_type
         else:
             self.path = f'{parent_directory}/{name}'
             self.name = name
@@ -88,48 +91,40 @@ class File:
     
     def create(
         self,
-        outputs: cli.Outputs = {'out': False, 'err': True},
-        sudo: bool = False
+        outputs: cli.Outputs = {'out': False, 'err': True}
     ) -> bool:
         return create(
             self.path,
             self.file_type,
             outputs,
-            sudo
         )
     
     def create_parent_directory(
         self,
-        outputs: cli.Outputs = {'out': False, 'err': True},
-        sudo: bool = False
+        outputs: cli.Outputs = {'out': False, 'err': True}
     ) -> bool:
         return create(
             self.parent_directory,
             FileType.DIRECTORY,
             outputs,
-            sudo
         )
     
     def copy(
         self,
         to: str,
-        outputs: cli.Outputs = {'out': False, 'err': True},
-        sudo: bool = False
+        outputs: cli.Outputs = {'out': False, 'err': True}
     ) -> bool:
         return copy(
             self.path,
             to,
             outputs,
-            sudo
         )
     
     def remove(
         self,
-        outputs: cli.Outputs = {'out': False, 'err': True},
-        sudo: bool = False
+        outputs: cli.Outputs = {'out': False, 'err': True}
     ) -> bool:
         return remove(
             self.path,
             outputs,
-            sudo
         )

@@ -8,8 +8,8 @@ License           : GPL3
 
 from typing import Optional, Callable, List
 from subprocess import run, PIPE
+from .status import StatusHandler
 from ..tools import cli
-from ..snapshots import SnapShot
 
 SUCCES_MESSAGE = cli.TypedMessage('succes').success
 FAILURE_MESSAGE = cli.TypedMessage('failure').failure
@@ -21,12 +21,25 @@ class Requirement:
         callback: Callable[[], bool],
         failure_details: Optional[str|None] = None
     ) -> None:
-        self.purpose = purpose
+        self.__purpose = purpose
         self.__callback = callback
-        self.failure_details = failure_details
+        self.__failure_details = failure_details
 
-    def isSatisfied(self) -> None:
-        return self.__callback()
+    def __show_message_check_up(self, success: bool) -> None:
+        if success: print(cli.MessageCheckUp(self.__purpose).success)
+        else: print(cli.MessageCheckUp(self.__purpose).failure)
+
+    def __show_failure_details(self) -> None:
+        if self.__failure_details:
+            print(
+                f"\n{cli.TypedMessage('Requirements are not satisfied').failure} : {self.__failure_details}."
+            )
+
+    def isSatisfied(self) -> bool:
+        result = self.__callback()
+        self.__show_message_check_up(result)
+        if not result: self.__show_failure_details()
+        return result
     
 class Requirements:
     def __init__(
@@ -39,17 +52,8 @@ class Requirements:
         value = True
 
         for requirement in self.__requirements:
-            if not requirement.isSatisfied():
-                print(f'{requirement.purpose} : {FAILURE_MESSAGE}')
-
-                if requirement.failure_details:
-                    print(
-                        f"\n{cli.TypedMessage('Execution failed').failure} : {requirement.failure_details}."
-                    )
-
-                if value: value = False
-            else:
-                print(f'{requirement.purpose} : {SUCCES_MESSAGE}')
+            result = requirement.isSatisfied()
+            if value: value = result
 
         return value
     
@@ -58,83 +62,91 @@ class Task:
             self,
             purpose: str,
             process_command: str,
-            cancel_command: Optional[str|None] = None,
             requirements: Requirements = Requirements()
     ) -> None:
         self.__purpose = purpose
         self.__process_command = process_command
-        self.__cancel_command = cancel_command
         self.__requirements = requirements
-        self.__cancellable = False
-
-    def __handle_purpose(self, cancel: bool) -> str:
-        prefix = '' if not cancel else cli.TypedMessage('Cancel ').warning
-        return (prefix + self.__purpose)
-
-    def __process(self, cancel: bool = False):
-        command = self.__process_command if not cancel else self.__cancel_command
-
-        if run(command, shell=True, stdout=PIPE).returncode == 0:
-            print(f'{self.__handle_purpose(cancel)} : {SUCCES_MESSAGE}')
-            if self.__cancel_command: self.__cancellable = True
-            return True
-        else:
-            print(f'{self.__handle_purpose(cancel)} : {FAILURE_MESSAGE}')
-            return False
-        
-    def run(self) -> bool:
-        if not self.__requirements.check(): return False
-        else: return self.__process()
-
-    def cancel(self) -> bool:
-        return self.__process(cancel=True)
+        self.__done = False
     
     @property
-    def cancellable(self) -> bool:
-        return self.__cancellable
+    def done(self) -> bool:
+        return self.__done
     
+    def __show_message_check_up(self, success: bool) -> None:
+        if success: print(cli.MessageCheckUp(self.__purpose).success)
+        else: print(cli.MessageCheckUp(self.__purpose).failure)
+
+    def __process(self) -> bool:
+        result = cli.run(self.__process_command)
+        self.__show_message_check_up(result)
+        if result: self.__done = True
+
+        return result
+        
+    def run(self) -> bool:
+        requirements = self.__requirements.check()
+        return self.__process() if requirements else False
+
+def requirements_builder(requirements_data: Optional[List[dict]|None]) -> Requirements:
+    if not requirements_data: return Requirements()
+    
+    requirement_list: List[Requirement] = []
+
+    for requirement in requirements_data:
+        requirement_list.append(Requirement(
+            purpose=requirement['purpose'],
+            callback=requirement['callback'],
+            failure_details=requirement.get('failure_details')
+        ))
+
+    return Requirements(requirement_list)
+
+def task_builder(task_data: dict) -> Task:
+    return Task(
+        purpose=task_data['purpose'],
+        process_command=task_data['process_command'],
+        requirements=requirements_builder(task_data.get('requirements'))
+    )
+
 class Setup:
     def __init__(self, setup_data: dict) -> None:
+        self.__task_list: List[Task] = []
         self.__purpose: str = setup_data['purpose']
-        self.__task_list = []
-
-        for task_data in setup_data['tasks']:
-            self.__task_list.append(self.__task_builder(task_data))
-
-    def __requirements_builder(self, requirements_data: Optional[List[dict]|None]) -> Requirements:
-        if not requirements_data: return Requirements()
+        print(f'\n{cli.TypedMessage(self.__purpose).title}\n')
         
-        requirement_list: List[Requirement] = []
+        self.__init_status(setup_data['status'])
+        self.__init_tasks(setup_data['tasks'])
 
-        for requirement in requirements_data:
-            requirement_list.append(Requirement(
-                purpose=requirement['purpose'],
-                callback=requirement['callback'],
-                failure_details=requirement.get('failure_details')
-            ))
+    def __init_status(self, new_data: dict):
+        self.__status = StatusHandler(new_data)
 
-        return Requirements(requirement_list)
+        if not self.__status.init(): self.__finalize(False)
+
+    def __init_tasks(self, tasks_data: List[dict]):
+
+        for task_data in tasks_data:
+            self.__task_list.append(task_builder(task_data))
     
-    def __task_builder(self, task_data: dict) -> Task:
-        return Task(
-            purpose=task_data['purpose'],
-            process_command=task_data['process_command'],
-            cancel_command=task_data.get('cancel_command'),
-            requirements=self.__requirements_builder(task_data.get('requirements'))
-        )
+    @property
+    def __has_done_tasks(self) -> bool:
+        for task in self.__task_list:
+            if task.done: return True
+
+        return False
     
     def process(self) -> None:
-        print(f'\n{cli.TypedMessage(self.__purpose).title}\n')
-
         for task in self.__task_list:
-            if not task.run():
-                self.__cancel_process()
-                exit(1)
+            if not task.run(): self.__finalize(False)
 
-        print(cli.TypedMessage('\nExecution was successful!').success)
+        self.__finalize()
 
-    def __cancel_process(self) -> None:
-        print()
+    def __finalize(self, success: bool = True) -> None:
+        self.__status.finalize(success, self.__has_done_tasks)
 
-        for task in reversed(self.__task_list):
-            if task.cancellable: task.cancel()
+        if success:
+            print(cli.TypedMessage('\nExecution was successful!').success)
+            exit(0)
+        else:
+            print(cli.TypedMessage('\nExecution failed!').failure)
+            exit(1)

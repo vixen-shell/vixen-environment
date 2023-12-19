@@ -41,7 +41,6 @@ setup = {
         {
             'purpose': 'Create the Vixen environment',
             'process_command': feature['install_command'],
-            'cancel_command': feature['remove_command'],
             'requirements': [
                 {
                     'purpose': 'Check an existing installation',
@@ -61,13 +60,17 @@ setup = {
         {
             'purpose': 'Install Vixen Manager executable',
             'process_command': executable['install_command'],
-            'cancel_command': executable['remove_command']
         },
         {
             'purpose': 'Patch Vixen Manager executable',
             'process_command': executable['patch_command']
         }
-    ]
+    ],
+    'status': {
+        'initial': True,
+        'env_path': feature['install_path'],
+        'exec_paths': [f"{executable['install_path']}/{executable['name']}"]
+    }
 }
 
 update = {

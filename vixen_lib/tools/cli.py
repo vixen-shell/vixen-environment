@@ -29,17 +29,31 @@ class TypedMessage:
     def failure(self) -> str:
         return f"\033[31m{self.__message}\033[0m"
     
+SUCCES_MESSAGE = TypedMessage('succes').success
+FAILURE_MESSAGE = TypedMessage('failure').failure
+
+class MessageCheckUp:
+    def __init__(self, message: str) -> None:
+        self.__message = message
+
+    @property
+    def success(self) -> str:
+        return f"{self.__message} : {SUCCES_MESSAGE}"
+    
+    @property
+    def failure(self) -> str:
+        return f"{self.__message} : {FAILURE_MESSAGE}"
+
 class Outputs(TypedDict):
     out: bool
     err: bool
 
 def run(
     command: str,
-    outputs: Outputs = {'out': False, 'err': True},
-    sudo: bool = False    
+    outputs: Outputs = {'out': False, 'err': True}
 ) -> bool:
     if subprocess.run(
-        f"{'sudo ' if sudo else ''}{command}",
+        command,
         stdout=subprocess.PIPE if not outputs['out'] else None,
         stderr=subprocess.PIPE if not outputs['err'] else None,
         shell=True

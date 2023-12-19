@@ -6,5 +6,6 @@ Description       : vixen environment tools.
 License           : GPL3
 """
 
-from . import cli_tools as cli
-from . import fs_tools as fs
+from . import cli
+from . import fs
+from . import json
