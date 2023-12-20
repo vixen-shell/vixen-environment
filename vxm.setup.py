@@ -67,7 +67,6 @@ setup = {
         }
     ],
     'status': {
-        'initial': True,
         'env_path': feature['install_path'],
         'exec_paths': [f"{executable['install_path']}/{executable['name']}"]
     }

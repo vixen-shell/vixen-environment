@@ -54,26 +54,37 @@ def snapshot_builder(status: dict) -> SnapShot:
 class StatusHandler:
     def __init__(self, data: Optional[dict|None] = None) -> None:
         self.__new_data = data
-        self.__initial = False
-
-        if data:
-            if 'initial' in data: self.__initial = data.pop('initial')
-
         self.__current_status = None
         self.__snapshot = None
 
     def init(self) -> bool:
-        if self.__initial: return True
+        if not self.__current_status_exists: return True
         if not self.__read_current_status(): return False
-        if not self.__create_snapshot(): return False
-        return True
+        return self.__create_snapshot()
     
     def __create_snapshot(self) -> bool:
-        if not self.__current_status: return False
         self.__snapshot = snapshot_builder(self.__current_status)
-        if not self.__snapshot.create(): return False
-        return True
+        return self.__snapshot.create()
 
+    def __restore_snapshot(self) -> None:
+        self.__clean_new_exec()
+        if self.__snapshot: self.__snapshot.restore()
+
+    def __remove_snapshot(self) -> None:
+        if self.__snapshot: self.__snapshot.remove()
+
+    def __clean_new_exec(self) -> None:
+        if not self.__new_data: return
+
+        for path in self.__new_data['exec_paths']:
+            if not path in self.__current_status['exec_paths']:
+                if fs.exists(path):
+                    if fs.remove(path): print(cli.MessageCheckUp(f"Remove {path}").success)
+                    else: print(cli.MessageCheckUp(f"Remove {path}").failure)
+
+    @property
+    def __current_status_exists(self) -> bool:
+        return exists()
 
     def __read_current_status(self) -> bool:
         purpose = 'Read packages status'
@@ -93,7 +104,7 @@ class StatusHandler:
         purpose = 'Update package status'
         data = self.__new_data
 
-        if self.__initial:
+        if not self.__current_status_exists:
             callback = create
         else:
             callback = update
@@ -107,22 +118,8 @@ class StatusHandler:
 
         print(cli.MessageCheckUp(purpose).success)
         return True
-    
-    def __clean_new_exec(self):
-        if not self.__new_data: return
-
-        for path in self.__new_data['exec_paths']:
-            if not path in self.__current_status['exec_paths']:
-                if fs.exists(path):
-                    if fs.remove(path): print(cli.MessageCheckUp(f"Remove {path}").success)
-                    else: print(cli.MessageCheckUp(f"Remove {path}").failure)
 
     def finalize(self, success: bool, restore: bool) -> None:
-        if not success:
-            if restore:
-                self.__clean_new_exec()
-                if self.__snapshot: self.__snapshot.restore()
-        else:
-            self.__update_status()
-        
-        if self.__snapshot: self.__snapshot.remove()
+        if not success and restore: self.__restore_snapshot()
+        if success: self.__update_status()
+        self.__remove_snapshot()
