@@ -10,9 +10,6 @@ from typing import List
 from datetime import datetime
 from ..tools import fs, cli
 
-SUCCES_MESSAGE = cli.TypedMessage('succes').success
-FAILURE_MESSAGE = cli.TypedMessage('failure').failure
-
 class Snap:
     def __init__(self, original_path: str, snapshot_directory: str) -> None:
         self.__original = fs.File(original_path)
@@ -22,23 +19,33 @@ class Snap:
             file_type=self.__original.file_type
         )
 
+    def __message(self, message: str) -> cli.MessageCheckUp:
+        prompt = cli.TypedMessage(f"    Snap {self.__original.path} : ").warning
+        return cli.MessageCheckUp(f"{prompt}{message}")
+    
     def create(self) -> bool:
         if self.__snap.exists: return False
 
         if not self.__snap.parent_directory_exists:
             if not self.__snap.create_parent_directory(): return False
 
-        return self.__original.copy(
-            to=self.__snap.parent_directory
-        )
+        if not self.__original.copy(to=self.__snap.parent_directory):
+            print(self.__message('created').failure)
+            return False
+        
+        print(self.__message('created').success)
+        return True
     
     def restore(self) -> bool:
         if not self.__snap.exists: return False
         if not self.__original.remove(): return False
 
-        return self.__snap.copy(
-            to=self.__original.parent_directory
-        )
+        if not self.__snap.copy(to=self.__original.parent_directory):
+            print(self.__message('restored').failure)
+            return False
+
+        print(self.__message('restored').success)
+        return True
     
 class SnapShot:
     def __init__(self, parent_directory: str, entries: List[str]) -> None:
@@ -56,12 +63,14 @@ class SnapShot:
 
     def create(self) -> bool:
         purpose = 'Create snapshot'
+        print(f"\n{purpose} :")
+
         for snap in self.__snaps:
             if not snap.create():
                 print(cli.MessageCheckUp(purpose).failure)
                 return False
 
-        print(cli.MessageCheckUp(purpose).success)
+        print(f"{cli.MessageCheckUp(purpose).success}\n")
         return True
     
     def restore(self) -> bool:
@@ -77,8 +86,8 @@ class SnapShot:
     def remove(self) -> bool:
         purpose = 'Remove Snapshot'
         if not self.__snapshot_directory.remove():
-            print(cli.MessageCheckUp(purpose).failure)
+            print(f"\n{cli.MessageCheckUp(purpose).failure}")
             return False
 
-        print(cli.MessageCheckUp(purpose).success)
+        print(f"\n{cli.MessageCheckUp(purpose).success}")
         return True

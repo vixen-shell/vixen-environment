@@ -115,10 +115,10 @@ class Setup:
         self.__purpose: str = setup_data['purpose']
         print(f'\n{cli.TypedMessage(self.__purpose).title}\n')
         
-        self.__init_status(setup_data['status'])
+        self.__init_status(setup_data.get('status'))
         self.__init_tasks(setup_data['tasks'])
 
-    def __init_status(self, new_data: dict):
+    def __init_status(self, new_data: Optional[dict|None]):
         self.__status = StatusHandler(new_data)
 
         if not self.__status.init(): self.__finalize(False)

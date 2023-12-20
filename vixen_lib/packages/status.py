@@ -1,3 +1,4 @@
+from typing import List, Optional
 from ..tools import fs, json, cli
 from ..snapshots import SnapShot
 
@@ -32,6 +33,14 @@ def read() -> dict|None:
     if not exists(): return None
     return json.read(STATUS_PATH['path'])
 
+def combine_unique_elements(a_list: List[str], b_list: List[str]) -> List[str]:
+    unique_elements_b = [item for item in b_list if item not in a_list]
+    unique_elements_a = [item for item in a_list if item not in b_list]
+    
+    result = unique_elements_b + unique_elements_a
+    return result
+
+
 SNAPSHOTS_PARENT_DIRECTORY = '/var/opt/vixen/snapshots'
 
 def snapshot_builder(status: dict) -> SnapShot:
@@ -43,48 +52,65 @@ def snapshot_builder(status: dict) -> SnapShot:
     return SnapShot(SNAPSHOTS_PARENT_DIRECTORY, entries)
 
 class StatusHandler:
-    def __init__(self, data: dict) -> None:
-        self.__initial = data.pop('initial') if 'initial' in data else False
+    def __init__(self, data: Optional[dict|None] = None) -> None:
         self.__new_data = data
+        self.__initial = False
+
+        if data:
+            if 'initial' in data: self.__initial = data.pop('initial')
+
         self.__current_status = None
         self.__snapshot = None
 
     def init(self) -> bool:
-        if self.__initial: return self.__init_for_initial()
-        if not self.__read(): return False
+        if self.__initial: return True
+        if not self.__read_current_status(): return False
+        if not self.__create_snapshot(): return False
+        return True
+    
+    def __create_snapshot(self) -> bool:
+        if not self.__current_status: return False
         self.__snapshot = snapshot_builder(self.__current_status)
         if not self.__snapshot.create(): return False
         return True
 
-    def __init_for_initial(self) -> bool:
-        return True
 
-    def __read(self) -> bool:
+    def __read_current_status(self) -> bool:
         purpose = 'Read packages status'
         data = read()
 
         if not data:
             print(cli.MessageCheckUp(purpose).failure)
-            self.__current_status = None
             return False
 
         print(cli.MessageCheckUp(purpose).success)
         self.__current_status = data
-        self.__new_data['exec_paths'].extend(data['exec_paths'])
         return True
     
-    def __update(self) -> bool:
-        purpose = 'Update package status'
-        callback = create if self.__initial else update
+    def __update_status(self) -> bool:
+        if not self.__new_data: return True
 
-        if not callback(self.__new_data):
+        purpose = 'Update package status'
+        data = self.__new_data
+
+        if self.__initial:
+            callback = create
+        else:
+            callback = update
+            data['exec_paths'] = combine_unique_elements(
+                data['exec_paths'], self.__current_status['exec_paths']
+            )
+
+        if not callback(data):
             print(cli.MessageCheckUp(purpose).failure)
             return False
 
         print(cli.MessageCheckUp(purpose).success)
         return True
     
-    def __clean_new_exec(self) -> bool:
+    def __clean_new_exec(self):
+        if not self.__new_data: return
+
         for path in self.__new_data['exec_paths']:
             if not path in self.__current_status['exec_paths']:
                 if fs.exists(path):
@@ -97,6 +123,6 @@ class StatusHandler:
                 self.__clean_new_exec()
                 if self.__snapshot: self.__snapshot.restore()
         else:
-            self.__update()
+            self.__update_status()
         
         if self.__snapshot: self.__snapshot.remove()
