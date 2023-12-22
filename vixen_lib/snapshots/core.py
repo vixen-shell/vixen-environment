@@ -19,9 +19,9 @@ class Snap:
             file_type=self.__original.file_type
         )
 
-    def __message(self, message: str) -> cli.MessageCheckUp:
-        prompt = cli.TypedMessage(f"    Snap {self.__original.path} : ").warning
-        return cli.MessageCheckUp(f"{prompt}{message}")
+    def __message(self, message: str) -> cli.CheckMsg:
+        prompt = cli.TypedMsg(f"    Snap {self.__original.path} : ").warning
+        return cli.CheckMsg(f"{prompt}{message}")
     
     def create(self) -> bool:
         if self.__snap.exists: return False
@@ -67,27 +67,27 @@ class SnapShot:
 
         for snap in self.__snaps:
             if not snap.create():
-                print(cli.MessageCheckUp(purpose).failure)
+                print(cli.CheckMsg(purpose).failure)
                 return False
 
-        print(f"{cli.MessageCheckUp(purpose).success}\n")
+        print(f"{cli.CheckMsg(purpose).success}\n")
         return True
     
     def restore(self) -> bool:
         purpose = 'Restore snapshot'
         for snap in self.__snaps:
             if not snap.restore():
-                print(cli.MessageCheckUp(purpose).failure)
+                print(cli.CheckMsg(purpose).failure)
                 return False
 
-        print(cli.MessageCheckUp(purpose).success)
+        print(cli.CheckMsg(purpose).success)
         return True
     
     def remove(self) -> bool:
         purpose = 'Remove Snapshot'
         if not self.__snapshot_directory.remove():
-            print(f"\n{cli.MessageCheckUp(purpose).failure}")
+            print(f"\n{cli.CheckMsg(purpose).failure}")
             return False
 
-        print(f"\n{cli.MessageCheckUp(purpose).success}")
+        print(f"\n{cli.CheckMsg(purpose).success}")
         return True

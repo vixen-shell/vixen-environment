@@ -9,7 +9,7 @@ License           : GPL3
 import subprocess
 from typing import TypedDict
 
-class TypedMessage:
+class TypedMsg:
     def __init__(self, message: str) -> None:
         self.__message = message
 
@@ -29,10 +29,10 @@ class TypedMessage:
     def failure(self) -> str:
         return f"\033[31m{self.__message}\033[0m"
     
-SUCCES_MESSAGE = TypedMessage('succes').success
-FAILURE_MESSAGE = TypedMessage('failure').failure
+SUCCES_MESSAGE = TypedMsg('succes').success
+FAILURE_MESSAGE = TypedMsg('failure').failure
 
-class MessageCheckUp:
+class CheckMsg:
     def __init__(self, message: str) -> None:
         self.__message = message
 

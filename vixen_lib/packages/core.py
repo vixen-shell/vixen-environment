@@ -7,146 +7,116 @@ License           : GPL3
 """
 
 from typing import Optional, Callable, List
-from subprocess import run, PIPE
 from .status import StatusHandler
 from ..tools import cli
-
-SUCCES_MESSAGE = cli.TypedMessage('succes').success
-FAILURE_MESSAGE = cli.TypedMessage('failure').failure
 
 class Requirement:
     def __init__(
         self,
         purpose: str,
         callback: Callable[[], bool],
-        failure_details: Optional[str|None] = None
+        failure_msg: Optional[str|None] = None
     ) -> None:
-        self.__purpose = purpose
-        self.__callback = callback
-        self.__failure_details = failure_details
+        self._purpose = purpose
+        self._callback = callback
+        self._failure_msg = failure_msg
 
-    def __show_message_check_up(self, success: bool) -> None:
-        if success: print(cli.MessageCheckUp(self.__purpose).success)
-        else: print(cli.MessageCheckUp(self.__purpose).failure)
+    def _show_check_msg(self, success: bool) -> None:
+        msg = cli.CheckMsg(self._purpose)
+        print(msg.success if success else msg.failure)
 
-    def __show_failure_details(self) -> None:
-        if self.__failure_details:
-            print(
-                f"\n{cli.TypedMessage('Requirements are not satisfied').failure} : {self.__failure_details}."
-            )
+    def _show_failure_msg(self) -> None:
+        prompt = cli.TypedMsg('Requirements are not satisfied').failure
+        msg = f" : {self._failure_msg}" if self._failure_msg else ''
+        print(f"\n{prompt}{msg}")
 
-    def isSatisfied(self) -> bool:
-        result = self.__callback()
-        self.__show_message_check_up(result)
-        if not result: self.__show_failure_details()
+    def is_satisfied(self) -> bool:
+        result = self._callback()
+        self._show_check_msg(result)
+        if not result: self._show_failure_msg()
         return result
-    
-class Requirements:
-    def __init__(
-        self,
-        requirements: List[Requirement] = []
-    ) -> None:
-        self.__requirements = requirements
 
-    def check(self) -> bool:
-        value = True
+def data_to_requirements(
+    requirements_data: Optional[List[dict]|None]
+) -> List[Requirement]:
+    if not requirements_data: return []
 
-        for requirement in self.__requirements:
-            result = requirement.isSatisfied()
-            if value: value = result
+    return [
+        Requirement(
+            purpose=data['purpose'],
+            callback=data['callback'],
+            failure_msg=data.get('failure_details')
+        ) for data in requirements_data
+    ]
 
-        return value
-    
 class Task:    
     def __init__(
             self,
             purpose: str,
-            process_command: str,
-            requirements: Requirements = Requirements()
+            cmd: str,
+            requirements: List[Requirement] = []
     ) -> None:
-        self.__purpose = purpose
-        self.__process_command = process_command
-        self.__requirements = requirements
-        self.__done = False
+        self._purpose = purpose
+        self._cmd = cmd
+        self._requirements = requirements
+        self._is_done = False
     
     @property
-    def done(self) -> bool:
-        return self.__done
+    def is_done(self) -> bool:
+        return self._is_done
     
-    def __show_message_check_up(self, success: bool) -> None:
-        if success: print(cli.MessageCheckUp(self.__purpose).success)
-        else: print(cli.MessageCheckUp(self.__purpose).failure)
+    def _show_check_msg(self, success: bool) -> None:
+        msg = cli.CheckMsg(self._purpose)
+        print(msg.success if success else msg.failure)
 
-    def __process(self) -> bool:
-        result = cli.run(self.__process_command)
-        self.__show_message_check_up(result)
-        if result: self.__done = True
+    def _check_requirements(self) -> bool:
+        return all(
+            requirement.is_satisfied() for requirement in self._requirements
+        )
 
-        return result
+    def _process(self) -> bool:
+        self._is_done = cli.run(self._cmd)
+        self._show_check_msg(self._is_done)
+        return self._is_done
         
     def run(self) -> bool:
-        requirements = self.__requirements.check()
-        return self.__process() if requirements else False
+        return self._process() if self._check_requirements() else False
 
-def requirements_builder(requirements_data: Optional[List[dict]|None]) -> Requirements:
-    if not requirements_data: return Requirements()
-    
-    requirement_list: List[Requirement] = []
-
-    for requirement in requirements_data:
-        requirement_list.append(Requirement(
-            purpose=requirement['purpose'],
-            callback=requirement['callback'],
-            failure_details=requirement.get('failure_details')
-        ))
-
-    return Requirements(requirement_list)
-
-def task_builder(task_data: dict) -> Task:
+def data_to_task(task_data: dict) -> Task:
     return Task(
         purpose=task_data['purpose'],
-        process_command=task_data['process_command'],
-        requirements=requirements_builder(task_data.get('requirements'))
+        cmd=task_data['process_command'],
+        requirements=data_to_requirements(task_data.get('requirements'))
     )
 
 class Setup:
     def __init__(self, setup_data: dict) -> None:
-        self.__task_list: List[Task] = []
-        self.__purpose: str = setup_data['purpose']
-        print(f'\n{cli.TypedMessage(self.__purpose).title}\n')
+        self._tasks: List[Task] = []
+        self._purpose: str = setup_data['purpose']
+
+        print(f'\n{cli.TypedMsg(self._purpose).title}\n')
         
-        self.__init_status(setup_data.get('status'))
-        self.__init_tasks(setup_data['tasks'])
+        self._init_status(setup_data.get('status'))
+        self._init_tasks(setup_data['tasks'])
 
-    def __init_status(self, new_data: Optional[dict|None]):
-        self.__status = StatusHandler(new_data)
+    def _init_status(self, new_data: Optional[dict|None]):
+        self._status = StatusHandler(new_data)
+        if not self._status.init(): self._finalize(False)
 
-        if not self.__status.init(): self.__finalize(False)
-
-    def __init_tasks(self, tasks_data: List[dict]):
-
-        for task_data in tasks_data:
-            self.__task_list.append(task_builder(task_data))
+    def _init_tasks(self, tasks_data: List[dict]):
+        self._tasks = [data_to_task(data) for data in tasks_data]
     
     @property
-    def __has_done_tasks(self) -> bool:
-        for task in self.__task_list:
-            if task.done: return True
-
-        return False
+    def _has_done_tasks(self) -> bool:
+        return any(task.is_done for task in self._tasks)
     
     def process(self) -> None:
-        for task in self.__task_list:
-            if not task.run(): self.__finalize(False)
+        success = not any(not task.run() for task in self._tasks)
+        self._finalize(success)
 
-        self.__finalize()
+    def _finalize(self, success: bool) -> None:
+        self._status.finalize(success, self._has_done_tasks)
 
-    def __finalize(self, success: bool = True) -> None:
-        self.__status.finalize(success, self.__has_done_tasks)
-
-        if success:
-            print(cli.TypedMessage('\nExecution was successful!').success)
-            exit(0)
-        else:
-            print(cli.TypedMessage('\nExecution failed!').failure)
-            exit(1)
+        msg = cli.CheckMsg('Execution')
+        print(msg.success if success else msg.failure)
+        exit(0 if success else 1)

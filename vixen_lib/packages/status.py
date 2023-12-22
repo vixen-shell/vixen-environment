@@ -79,8 +79,8 @@ class StatusHandler:
         for path in self.__new_data['exec_paths']:
             if not path in self.__current_status['exec_paths']:
                 if fs.exists(path):
-                    if fs.remove(path): print(cli.MessageCheckUp(f"Remove {path}").success)
-                    else: print(cli.MessageCheckUp(f"Remove {path}").failure)
+                    if fs.remove(path): print(cli.CheckMsg(f"Remove {path}").success)
+                    else: print(cli.CheckMsg(f"Remove {path}").failure)
 
     @property
     def __current_status_exists(self) -> bool:
@@ -91,10 +91,10 @@ class StatusHandler:
         data = read()
 
         if not data:
-            print(cli.MessageCheckUp(purpose).failure)
+            print(cli.CheckMsg(purpose).failure)
             return False
 
-        print(cli.MessageCheckUp(purpose).success)
+        print(cli.CheckMsg(purpose).success)
         self.__current_status = data
         return True
     
@@ -113,10 +113,10 @@ class StatusHandler:
             )
 
         if not callback(data):
-            print(cli.MessageCheckUp(purpose).failure)
+            print(cli.CheckMsg(purpose).failure)
             return False
 
-        print(cli.MessageCheckUp(purpose).success)
+        print(cli.CheckMsg(purpose).success)
         return True
 
     def finalize(self, success: bool, restore: bool) -> None:
