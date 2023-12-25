@@ -7,7 +7,7 @@ License           : GPL3
 """
 
 from typing import Optional, Callable, List
-from .status import StatusHandler
+from .state import PackagesState
 from ..tools import cli
 
 class Requirement:
@@ -90,18 +90,19 @@ def data_to_task(task_data: dict) -> Task:
     )
 
 class Setup:
-    def __init__(self, setup_data: dict) -> None:
+    def __init__(self, data: dict) -> None:
         self._tasks: List[Task] = []
-        self._purpose: str = setup_data['purpose']
+        self._purpose: str = data['purpose']
 
         print(f'\n{cli.TypedMsg(self._purpose).title}\n')
         
-        self._init_status(setup_data.get('status'))
-        self._init_tasks(setup_data['tasks'])
+        self._init_state(data.get('state'))
+        self._init_tasks(data['tasks'])
 
-    def _init_status(self, new_data: Optional[dict|None]):
-        self._status = StatusHandler(new_data)
-        if not self._status.init(): self._finalize(False)
+    def _init_state(self, new_data: Optional[dict|None]):
+        self._packages_state = PackagesState(new_data)
+        if not self._packages_state.init(): self._finalize(False)
+        if not self._packages_state.create_snapshot(): self._finalize(False)
 
     def _init_tasks(self, tasks_data: List[dict]):
         self._tasks = [data_to_task(data) for data in tasks_data]
@@ -111,11 +112,11 @@ class Setup:
         return any(task.is_done for task in self._tasks)
     
     def process(self) -> None:
-        success = not any(not task.run() for task in self._tasks)
-        self._finalize(success)
+        result = not any(not task.run() for task in self._tasks)
+        self._finalize(result)
 
     def _finalize(self, success: bool) -> None:
-        self._status.finalize(success, self._has_done_tasks)
+        self._packages_state.finalize(success, self._has_done_tasks)
 
         msg = cli.CheckMsg('Execution')
         print(msg.success if success else msg.failure)

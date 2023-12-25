@@ -67,7 +67,7 @@ class SnapShot:
 
         for snap in self.__snaps:
             if not snap.create():
-                print(cli.CheckMsg(purpose).failure)
+                print(f"{cli.CheckMsg(purpose).failure}\n")
                 return False
 
         print(f"{cli.CheckMsg(purpose).success}\n")
@@ -75,19 +75,21 @@ class SnapShot:
     
     def restore(self) -> bool:
         purpose = 'Restore snapshot'
+        print(f"\n{purpose} :")
+
         for snap in self.__snaps:
             if not snap.restore():
-                print(cli.CheckMsg(purpose).failure)
+                print(f"{cli.CheckMsg(purpose).failure}\n")
                 return False
 
-        print(cli.CheckMsg(purpose).success)
+        print(f"{cli.CheckMsg(purpose).success}\n")
         return True
     
     def remove(self) -> bool:
         purpose = 'Remove Snapshot'
         if not self.__snapshot_directory.remove():
-            print(f"\n{cli.CheckMsg(purpose).failure}")
+            print(f"{cli.CheckMsg(purpose).failure}")
             return False
 
-        print(f"\n{cli.CheckMsg(purpose).success}")
+        print(f"{cli.CheckMsg(purpose).success}")
         return True

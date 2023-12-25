@@ -43,7 +43,7 @@ setup = {
             'process_command': feature['install_command'],
             'requirements': [
                 {
-                    'purpose': 'Check an existing installation',
+                    'purpose': f"Check {feature['name']} is not already installed",
                     'callback': lambda: not os.path.isdir(feature['install_path']),
                     'failure_details': f"{feature['name']} is already installed"
                 }
@@ -66,7 +66,7 @@ setup = {
             'process_command': executable['patch_command']
         }
     ],
-    'status': {
+    'state': {
         'env_path': feature['install_path'],
         'exec_paths': [f"{executable['install_path']}/{executable['name']}"]
     }
