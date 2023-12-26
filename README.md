@@ -1,10 +1,10 @@
-# ![vixen logo](./assets/vixen_logo_md.png) Vixen Shell Project
+# ![vixen logo](/assets/vixen_logo_md.png) Vixen Shell Project
 
 ## Linux Desktop Environment
 
 The Vixen Shell project represents an initiative aimed at creating a user-friendly desktop environment for Linux users, focused on development. Built upon the Hyprland window manager, this project stands out for its use of Python for the backend and web technologies like JavaScript, HTML, and CSS for the user interface (front-end).
 
-# ![vixen logo](./assets/vixen_logo_md.png) Vixen Environment
+# ![vixen logo](/assets/vixen_logo_md.png) Vixen Environment
 
 ## Python Environment Dedicated to Vixen Shell
 
