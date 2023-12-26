@@ -7,7 +7,7 @@ License           : GPL3
 """
 
 from typing import Optional, Callable, List
-from .state import PackagesState
+from .state import State
 from ..tools import cli
 
 class Requirement:
@@ -100,9 +100,9 @@ class Setup:
         self._init_tasks(data['tasks'])
 
     def _init_state(self, new_data: Optional[dict|None]):
-        self._packages_state = PackagesState(new_data)
-        if not self._packages_state.init(): self._finalize(False)
-        if not self._packages_state.create_snapshot(): self._finalize(False)
+        self._state = State(new_data)
+        if not self._state.init(): self._finalize(False)
+        if not self._state.create_snapshot(): self._finalize(False)
 
     def _init_tasks(self, tasks_data: List[dict]):
         self._tasks = [data_to_task(data) for data in tasks_data]
@@ -116,7 +116,7 @@ class Setup:
         self._finalize(result)
 
     def _finalize(self, success: bool) -> None:
-        self._packages_state.finalize(success, self._has_done_tasks)
+        self._state.finalize(success, self._has_done_tasks)
 
         msg = cli.CheckMsg('Execution')
         print(msg.success if success else msg.failure)

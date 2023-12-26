@@ -7,4 +7,4 @@ License           : GPL3
 """
 
 from .core import Setup
-from . import state
+from .state import State

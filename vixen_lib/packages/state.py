@@ -1,4 +1,4 @@
-from typing import List, Optional, Callable
+from typing import List, Optional
 from ..tools import fs, json, cli
 from ..snapshots import SnapShot
 
@@ -45,7 +45,7 @@ def snapshot_builder(status: dict) -> SnapShot:
     entries = [status['env_path']] + status['exec_paths']
     return SnapShot(SNAPSHOTS_PARENT_DIRECTORY, entries)
 
-class PackagesState:
+class State:
     class Purpose:
         INIT: str = 'Initializing packages state'
         CHECK_STATE_INI: str = 'Check if packages state does not exists'
