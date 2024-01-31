@@ -17,23 +17,23 @@ feature = {
     'name': 'Vixen Environment',
     'install_path': '/opt/vixen-env'
 }
-feature['install_command'] = f"sudo python -m venv {feature['install_path']}"
-feature['remove_command'] = f"sudo rm -r {feature['install_path']}"
+feature['install_command'] = f"python -m venv {feature['install_path']}"
+feature['remove_command'] = f"rm -r {feature['install_path']}"
 
 library = {
     'name': 'vixen_lib',
     'source': '/opt/vixen-env/bin/activate'
 }
-library['install_command'] = f"source {library['source']} && sudo pip install --upgrade pip && sudo pip install {CURRENT_PATH}"
+library['install_command'] = f"source {library['source']} && pip install --upgrade pip && pip install {CURRENT_PATH}"
 
 executable = {
     'name': 'vxm',
     'install_path': '/usr/bin',
     'patch': '#!/opt/vixen-env/bin/python',
 }
-executable['install_command'] = f"sudo cp -f {CURRENT_PATH}/{executable['name']} {executable['install_path']}"
-executable['remove_command'] = f"sudo rm {executable['install_path']}/{executable['name']}"
-executable['patch_command'] = f'sudo sed -i "1s|.*|{executable["patch"]}|" {executable["install_path"]}/{executable["name"]}'
+executable['install_command'] = f"cp -f {CURRENT_PATH}/{executable['name']} {executable['install_path']}"
+executable['remove_command'] = f"rm {executable['install_path']}/{executable['name']}"
+executable['patch_command'] = f'sed -i "1s|.*|{executable["patch"]}|" {executable["install_path"]}/{executable["name"]}'
 
 setup = {
     'purpose': f"Install {feature['name']}",
@@ -55,7 +55,7 @@ setup = {
         },
         {
             'purpose': 'Remove build folders',
-            'process_command': f"sudo rm -r {CURRENT_PATH}/build && sudo rm -r {CURRENT_PATH}/{library['name']}.egg-info",
+            'process_command': f"rm -r {CURRENT_PATH}/build && rm -r {CURRENT_PATH}/{library['name']}.egg-info",
         },
         {
             'purpose': 'Install Vixen Manager executable',
@@ -88,7 +88,7 @@ update = {
         },
         {
             'purpose': 'Remove build folders',
-            'process_command': f"sudo rm -r {CURRENT_PATH}/build && sudo rm -r {CURRENT_PATH}/{library['name']}.egg-info",
+            'process_command': f"rm -r {CURRENT_PATH}/build && rm -r {CURRENT_PATH}/{library['name']}.egg-info",
         },
         {
             'purpose': 'Update Vixen Manager executable',
